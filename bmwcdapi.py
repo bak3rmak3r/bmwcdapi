@@ -39,7 +39,7 @@ class ConnectedDrive(object):
         #REST_OF_WORLD: 'b2vapi.bmwgroup.com'
         #NORTH_AMERICA:'b2vapi.bmwgroup.us'
         #CHINA: 'b2vapi.bmwgroup.cn:8592'
-        servers = {'1': 'customer.bmwgroup.com',
+        servers = {'1': 'b2vapi.bmwgroup.com',
                 '2': 'b2vapi.bmwgroup.us',
                 '3': 'b2vapi.bmwgroup.cn:8592'}
         try:

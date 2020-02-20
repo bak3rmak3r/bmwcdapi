@@ -54,8 +54,8 @@ class ConnectedDrive(object):
             #fallback for nonexisting region
             self.serverUrl = servers['1']
 
-        self.authApi = 'https://' + self.serverUrl +'/gcdm/oauth/authenticate'
-        self.vehicleApi = 'https://myc-profile.bmwgroup.com'
+        self.authApi = 'https://' + self.serverUrl +'/gcdm/oauth/token'
+        self.vehicleApi = 'https://'+ self.serverUrl + '/api/vehicle'
 
         self.printall = False
         self.bmwUsername = self.ohGetValue("Bmw_Username").json()["label"]

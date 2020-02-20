@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# 
+#
 # **** bmwcdapi.py ****
 # https://github.com/jupe76/bmwcdapi
 #
@@ -26,7 +26,7 @@ import datetime
 import urllib.parse
 import re
 import argparse
-import xml.etree.ElementTree as etree  
+import xml.etree.ElementTree as etree
 
 # ADJUST HERE if OH is not running on "localhost:8080"
 OPENHABIP = "localhost:8080"
@@ -39,7 +39,7 @@ class ConnectedDrive(object):
         #REST_OF_WORLD: 'b2vapi.bmwgroup.com'
         #NORTH_AMERICA:'b2vapi.bmwgroup.us'
         #CHINA: 'b2vapi.bmwgroup.cn:8592'
-        servers = {'1': 'b2vapi.bmwgroup.com',
+        servers = {'1': 'customer.bmwgroup.com',
                 '2': 'b2vapi.bmwgroup.us',
                 '3': 'b2vapi.bmwgroup.cn:8592'}
         try:
@@ -51,11 +51,11 @@ class ConnectedDrive(object):
         try:
             self.serverUrl = servers[region]
         except:
-            #fallback for nonexisting region 
+            #fallback for nonexisting region
             self.serverUrl = servers['1']
 
-        self.authApi = 'https://' + self.serverUrl +'/gcdm/oauth/token'
-        self.vehicleApi = 'https://'+ self.serverUrl + '/api/vehicle'
+        self.authApi = 'https://' + self.serverUrl +'/gcdm/oauth/authenticate'
+        self.vehicleApi = 'https://myc-profile.bmwgroup.com'
 
         self.printall = False
         self.bmwUsername = self.ohGetValue("Bmw_Username").json()["label"]
@@ -176,6 +176,9 @@ class ConnectedDrive(object):
             self.ohPutValue("Bmw_gpsLng", map['gps_lng'])
             #maybe a combined value is more useful
             self.ohPutValue("Bmw_gpsLatLng", (map['gps_lat']+ "," + map['gps_lng']))
+        if('soc_hv_percent' in map):
+            self.ohPutValue("Bmw_socHvPercent",map['soc_hv_percent'])
+
 
         r = requests.get(self.vehicleApi+'/navigation/v1/'+self.bmwVin, headers=headers,allow_redirects=True)
         if (r.status_code != 200):

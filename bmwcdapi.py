@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-#
+# 
 # **** bmwcdapi.py ****
 # https://github.com/jupe76/bmwcdapi
 #
@@ -18,6 +18,14 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# UPDATED FOR NEW BMW-CONNECTEDDRIVE authentication based on
+# https://github.com/bimmerconnected/bimmer_connected/releases/tag/0.7.0
+# 21/02/2020
+# It is just a quick a dirty solution and I can't ensure everything works
+# as expected, but I've tried, considering that jupe76 doesn't seem to be
+# maintaining it anymore.
+# Jagohu
 
 import json
 import requests
@@ -26,7 +34,7 @@ import datetime
 import urllib.parse
 import re
 import argparse
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree  
 
 # ADJUST HERE if OH is not running on "localhost:8080"
 OPENHABIP = "localhost:8080"
@@ -39,7 +47,7 @@ class ConnectedDrive(object):
         #REST_OF_WORLD: 'b2vapi.bmwgroup.com'
         #NORTH_AMERICA:'b2vapi.bmwgroup.us'
         #CHINA: 'b2vapi.bmwgroup.cn:8592'
-        servers = {'1': 'b2vapi.bmwgroup.com',
+        servers = {'1': 'customer.bmwgroup.com',
                 '2': 'b2vapi.bmwgroup.us',
                 '3': 'b2vapi.bmwgroup.cn:8592'}
         try:
@@ -51,11 +59,14 @@ class ConnectedDrive(object):
         try:
             self.serverUrl = servers[region]
         except:
-            #fallback for nonexisting region
+            #fallback for nonexisting region 
             self.serverUrl = servers['1']
 
-        self.authApi = 'https://' + self.serverUrl +'/gcdm/oauth/token'
+        self.authApi = 'https://customer.bmwgroup.com/{gcdm_oauth_endpoint}/authenticate'
+
         self.vehicleApi = 'https://'+ self.serverUrl + '/api/vehicle'
+
+        self.get_gcdm_oauth_endpoint = 'gcdm/oauth'
 
         self.printall = False
         self.bmwUsername = self.ohGetValue("Bmw_Username").json()["label"]
@@ -98,24 +109,29 @@ class ConnectedDrive(object):
         }
 
         values = {
-            'grant_type': 'password',
+                'client_id': 'dbf0a542-ebd1-4ff0-a9a7-55172fbfce35',
+                'response_type': 'token',
+                'redirect_uri': 'https://www.bmw-connecteddrive.com/app/static/external-dispatch.html',
             'scope': 'authenticate_user vehicle_data remote_services',
             'username': self.bmwUsername,
             'password': self.bmwPassword,
         }
 
         data = urllib.parse.urlencode(values)
-        url = self.authApi.format(server=self.serverUrl)
-        r = requests.post(url, data=data, headers=headers,allow_redirects=False)
-        if (r.status_code != 200):
+        #print("url=self.authApi.format(gcdm_oauth_endpoint="+self.get_gcdm_oauth_endpoint+"(server="+self.serverUrl+")")
+        #print(self.serverUrl)
+        url = self.authApi.format(gcdm_oauth_endpoint=self.get_gcdm_oauth_endpoint)
+        #print("URL:"+url)
+        response = requests.post(url, data=data, headers=headers,allow_redirects=False)
+        response_json = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(response.headers['Location']).fragment))
+        if (response.status_code != 302):
             self.authenticated = False
             return
-        myPayLoad=r.json()
-
+        myPayLoad=dict(urllib.parse.parse_qsl(urllib.parse.urlparse(response.headers['Location']).fragment))
         self.accessToken=myPayLoad['access_token']
         self.ohPutValue('Bmw_accessToken',self.accessToken)
 
-        expirationSecs=myPayLoad['expires_in']
+        expirationSecs=int(response_json['expires_in'])
         self.tokenExpires = datetime.datetime.now() + datetime.timedelta(seconds=expirationSecs)
         self.ohPutValue('Bmw_tokenExpires',self.tokenExpires)
 
@@ -176,6 +192,7 @@ class ConnectedDrive(object):
             self.ohPutValue("Bmw_gpsLng", map['gps_lng'])
             #maybe a combined value is more useful
             self.ohPutValue("Bmw_gpsLatLng", (map['gps_lat']+ "," + map['gps_lng']))
+        #bak3rmak3r: keep socHv as it is still available
         if('soc_hv_percent' in map):
             self.ohPutValue("Bmw_socHvPercent",map['soc_hv_percent'])
 
